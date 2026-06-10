@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 from typing import List
 
 import pandas as pd
@@ -137,9 +138,15 @@ if run:
     st.subheader("Detailed checks")
     st.dataframe(pd.DataFrame(detail_rows), use_container_width=True, hide_index=True)
 
-    for report in reports:
+    for idx, report in enumerate(reports):
+        safe_filename = re.sub(r"[^A-Za-z0-9_.-]+", "-", report.filename)
         with st.expander(f"{STATUS_ICON[report.overall_status]} {report.filename} — extracted text"):
-            st.text_area("OCR/text output", report.extracted_text, height=220, key=f"text-{report.filename}")
+            st.text_area(
+                "OCR/text output",
+                report.extracted_text,
+                height=220,
+                key=f"text-{idx}-{safe_filename}",
+            )
 
     csv_buffer = io.StringIO()
     writer = csv.DictWriter(csv_buffer, fieldnames=list(detail_rows[0].keys()))
