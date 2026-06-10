@@ -1,118 +1,416 @@
-# **Take-Home Project: AI-Powered Alcohol Label Verification App**
+# LabelGuard AI — Alcohol Label Verification Prototype
 
-## **Project Background & Stakeholder Context**
+LabelGuard AI is a local-first Streamlit application for verifying alcohol beverage label artwork or extracted label text against application data. It is designed as a standalone proof of concept for reducing routine alcohol label review work while keeping the final compliance decision understandable to human reviewers.
 
-*The following document contains notes from our discovery sessions with the Compliance Division, along with technical requirements for the prototype. We've included stakeholder feedback to give you context on how this tool will be used.*
+The application focuses on the workflow described in the take-home assignment:
 
-### **Interview Notes: Sarah Chen, Deputy Director of Label Compliance**
+* Fast feedback for routine label checks
+* A simple one-page interface for non-technical users
+* Batch upload support for reviewing multiple labels at once
+* Clear `PASS`, `REVIEW`, and `FAIL` results
+* Strict government health warning validation
+* No external AI API dependency
+* No direct COLA integration
 
-*Conducted Tuesday, 3:15 PM — Sarah was running late from her daughter's school play rehearsal*
+## Deployed Application
 
-"Thanks for meeting with me. Sorry about the delay—my daughter's playing the lead in her school's production of *Annie*next week and rehearsals have been crazy. Anyway, let me tell you about what we're dealing with here.
+Deployed application URL:
 
-So the TTB reviews about 150,000 label applications a year. Our team of 47 agents handles all of them. Back in the 80s—before my time—they actually had over 100 agents, but budget cuts, you know how it goes. We've been doing things basically the same way since the COLA system went online in 2003. That was a big upgrade from paper forms, believe it or not.
+```text
+Deployed application URL:
 
-The actual review process is pretty straightforward. An agent pulls up an application, looks at the label artwork, and checks that what's on the label matches what's in the application. Brand name matches? Check. ABV is correct? Check. Government warning is there? Check. It takes maybe 5-10 minutes per application for a simple one, longer if there are issues.
-
-Here's the thing though—and this is what got leadership interested in AI—a lot of what we do is just... matching. Like literally just making sure the number on the form is the same as the number on the label. My agents spend half their day doing what's essentially data entry verification. It's not that they can't do more complex analysis, it's that they're drowning in routine stuff.
-
-Oh, I should mention—we tried a pilot with the scanning vendor last year. Disaster. The system would take 30, 40 seconds sometimes to process a single label. Our agents just went back to doing it by eye because they could do five labels in the time it took the machine to do one. **If we can't get results back in about 5 seconds, nobody's going to use it.** We learned that the hard way.
-
-What else... The agents really vary in their tech comfort level. Dave's been here since the Clinton administration and still prints his emails. Meanwhile, Jenny's fresh out of college and probably could have built this tool herself. We need something **my mother could figure out**—she's 73 and just learned to video call her grandkids last year, if that gives you a benchmark. Half our team is over 50. Clean, obvious, no hunting for buttons.
-
-One more thing that came up in our last team meeting—during peak season, we get these big importers who dump 200, 300 label applications on us at once. Right now we literally have to process them one at a time. If there was some way to **handle batch uploads**, that would be huge. Janet from our Seattle office has been asking about this for years."
-
-### **Interview Notes: Marcus Williams, IT Systems Administrator**
-
-*Coffee chat, Thursday morning*
-
-"Sarah probably gave you the business side. Let me fill you in on some of the technical landscape.
-
-Our current infrastructure is... well, it's government infrastructure, let's leave it at that. We're on Azure now after the migration in 2019. That was a whole thing—don't get me started on the FedRAMP certification process. Took 18 months just for the paperwork.
-
-The COLA system is built on .NET, though there's been talk about modernizing it for years. We had a contractor come in last summer to do an assessment and they quoted us $4.2 million for a full rebuild. That went nowhere, obviously.
-
-For this prototype, we're not looking to integrate with COLA directly—that's a whole different beast with its own authorization requirements. Think of this as a standalone proof-of-concept that could potentially inform future procurement decisions. If it works well, maybe we look at how to incorporate it into the workflow. But that's years away, realistically.
-
-Security-wise, we'd need to be careful with any production deployment—there's PII considerations, document retention policies, the usual federal compliance stuff. But for a prototype? Just don't do anything crazy. We're not storing anything sensitive for this exercise.
-
-Oh, and our network blocks outbound traffic to a lot of domains, so keep that in mind if you're thinking about cloud APIs. During the scanning vendor pilot, half their features didn't work because our firewall blocked connections to their ML endpoints. Classic."
-
-### **Interview Notes: Dave Morrison, Senior Compliance Agent (28 years)**
-
-*Brief hallway conversation*
-
-"Look, I'll be honest, I've seen a lot of these 'modernization' projects come and go. Remember the automated phone system they put in back in 2008? Supposed to reduce call volume. We ended up with more calls because nobody could figure out how to navigate it.
-
-The thing about label review is there's nuance. You can't just pattern match everything. Like, I had one last week where the brand name was 'STONE'S THROW' on the label but 'Stone's Throw' in the application. Technically a mismatch? Sure. But it's obviously the same thing. You need judgment.
-
-That said, I'm not against new tools. If something can help me get through my queue faster, great. Just don't make my life harder in the process. I spend enough time fighting with COLA as it is."
-
-### **Interview Notes: Jenny Park, Junior Compliance Agent (8 months)**
-
-*Teams call, Friday afternoon*
-
-"I'm so excited you're working on this! When I started here, I was kind of shocked at how manual everything is. Like, I literally have a printed checklist on my desk that I go through for every label. Brand name—check with my eyes. ABV—check with my eyes. Warning statement—check with my eyes. It's 2024!
-
-The one thing I'd say is the warning statement check is actually trickier than it sounds. It has to be **exact**. Like, word-for-word, and the 'GOVERNMENT WARNING:' part has to be in all caps and bold. Sarah probably mentioned this but people try to get creative with the warning all the time. Smaller font, different wording, burying it in tiny text. I caught one last month where they used 'Government Warning' in title case instead of all caps. Rejected.
-
-Also—and this is maybe out of scope for a prototype—but it would be amazing if the tool could handle images that aren't perfectly shot. I've seen labels that are photographed at weird angles, or the lighting is bad, or there's glare on the bottle. Right now if an agent can't read the label they just reject it and ask for a better image. But if AI could handle some of that..."
-
-## **Technical Requirements**
-
-You are free to use any programming languages, frameworks, or libraries you prefer. We want to see what kind of engineering, design, and integration decisions you make.
-
-## **Additional Context**
-
-### **About TTB Label Requirements**
-
-For reference, TTB requires specific information on alcohol beverage labels. The exact requirements vary by beverage type (beer, wine, distilled spirits) but common elements include:
-
-- Brand name
-- Class/type designation
-- Alcohol content (with some exceptions for certain wine/beer)
-- Net contents
-- Name and address of bottler/producer
-- Country of origin for imports
-- **Government Health Warning Statement** (mandatory on all alcohol beverages)
-
-We encourage you to review TTB's guidelines at ttb.gov for additional context on label requirements.
-
-### **Sample Label**
-
-Your app should handle labels containing information like the example below:
-
-**Example Distilled Spirits Label Fields:**
-
-- Brand Name: "OLD TOM DISTILLERY"
-- Class/Type: "Kentucky Straight Bourbon Whiskey"
-- Alcohol Content: "45% Alc./Vol. (90 Proof)"
-- Net Contents: "750 mL"
-- Government Warning: \[Standard government warning text\]
-
-*We encourage you to create or source additional test labels—AI image generation tools work well for this.*
-
-## **Deliverables**
-
-1. **Source Code Repository** (GitHub or similar)
-   - All source code
-   - README with setup and run instructions
-   - Brief documentation of approach, tools used, assumptions made
-2. **Deployed Application URL**
-   - Working prototype we can access and test
-
-## **Evaluation Criteria**
-
-- Correctness and completeness of core requirements
-- Code quality and organization
-- Appropriate technical choices for the scope
-- User experience and error handling
-- Attention to requirements
-- Creative problem-solving
-
-We understand this is time-constrained. A working core application with clean code is preferred over ambitious but incomplete features. Document any trade-offs or limitations.
-
-*Questions? Reach out for clarification—though we also value how you fill in gaps independently.*
-
-Good luck!
 ```
+
+Source code repository:
+
+```text
+https://github.com/Colonad/instructions/tree/labelguard-prototype
+```
+
+## What the App Checks
+
+For each uploaded label, the application verifies whether the label text matches the submitted application fields:
+
+1. Brand name
+2. Class/type designation
+3. Alcohol content, ABV, or proof equivalence
+4. Net contents
+5. Producer or bottler name/address, when provided
+6. Country of origin, when provided
+7. Government health warning statement
+
+The government warning statement used by the prototype is:
+
+```text
+GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems.
+```
+
+## Key Features
+
+* **Single-label review:** Enter application fields and upload one label.
+* **Batch review:** Upload multiple labels in one run.
+* **Local-first validation:** Uses deterministic checks and optional local OCR.
+* **No cloud AI dependency:** Works without sending files to third-party AI services.
+* **Transparent results:** Shows which checks passed, failed, or need review.
+* **CSV and JSON exports:** Allows reviewers to download structured results.
+* **Sample data included:** Demo files are included for immediate testing.
+
+## Approach
+
+The application uses a practical rule-based pipeline rather than relying on external AI services.
+
+The review flow is:
+
+1. The reviewer enters application data in the sidebar.
+2. The reviewer uploads one or more label files.
+3. The app extracts text from each file.
+4. The validator compares extracted label text against the application data.
+5. The app returns a status for each file:
+
+   * `PASS`
+   * `REVIEW`
+   * `FAIL`
+6. The reviewer can inspect detailed checks and download results.
+
+This approach was chosen because the assignment emphasizes speed, usability, and government-network constraints. A local-first system avoids slow remote calls, reduces deployment friction, and keeps the decision path easy to inspect.
+
+## Tools Used
+
+* **Python** for application logic
+* **Streamlit** for the user interface
+* **pandas** for tabular results and CSV export
+* **Pillow** for image handling
+* **pytesseract** for optional local OCR
+* **pytest** for automated tests
+* **GitHub Actions** for continuous integration
+* **Render or Streamlit Community Cloud** for deployment
+
+## Repository Structure
+
+```text
+.
+├── app.py                         # Streamlit user interface
+├── labelguard/
+│   ├── __init__.py
+│   ├── models.py                  # Dataclasses and status types
+│   ├── ocr.py                     # Text extraction and optional OCR
+│   ├── utils.py                   # Normalization/parsing helpers
+│   └── validator.py               # Verification rules
+├── sample_data/
+│   ├── old_tom_label.txt          # Passing demo label
+│   ├── bad_warning_label.txt      # Warning failure demo
+│   ├── review_case_old_tom_case.txt
+│   └── batch_expected.csv
+├── tests/
+│   └── test_validator.py
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── .streamlit/
+│   └── config.toml
+├── .gitignore
+├── Procfile
+├── pytest.ini
+├── requirements.txt
+└── README.md
+```
+
+## Prerequisites
+
+* Python 3.11 or newer
+* pip
+* Optional: Tesseract OCR for image-based label files
+
+Text files do not require Tesseract. The included sample files are plain text, so the core application can be tested immediately after installing Python dependencies.
+
+### Optional Tesseract Installation
+
+#### Ubuntu/Debian
+
+```bash
+sudo apt-get update
+sudo apt-get install -y tesseract-ocr
+```
+
+#### macOS
+
+```bash
+brew install tesseract
+```
+
+#### Windows
+
+Install Tesseract from the UB Mannheim Windows builds, then make sure the installation directory is available on your `PATH`.
+
+## Local Setup
+
+From the repository root:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+On Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## Run Automated Tests
+
+```bash
+python -m pytest -q
+```
+
+Expected result:
+
+```text
+5 passed
+```
+
+## Run the App Locally
+
+```bash
+python -m streamlit run app.py
+```
+
+Open the local URL shown by Streamlit. It is usually:
+
+```text
+http://localhost:8501
+```
+
+## Quick Demo Script
+
+This section gives reviewers a fast, repeatable path to test the prototype without reading the full codebase first.
+
+### Local demo
+
+From the project root, run:
+
+    source .venv/bin/activate
+    python -m pytest -q
+    python -m streamlit run app.py
+
+Open the URL printed by Streamlit. It is usually:
+
+    http://localhost:8501
+
+### Important testing note
+
+The app applies one set of sidebar application data to every uploaded file in a batch. That means the default Old Tom labels, the Jamaica import label, and the STONE'S THROW label should not all be tested with the same sidebar values unless you intentionally want to see mismatches.
+
+### Default demo batch
+
+Leave the default application fields as:
+
+| Field | Value |
+|---|---|
+| Brand Name | `OLD TOM DISTILLERY` |
+| Class/Type | `Kentucky Straight Bourbon Whiskey` |
+| Alcohol Content | `45% Alc./Vol. (90 Proof)` |
+| Net Contents | `750 mL` |
+| Producer | `Old Tom Distillery, Louisville, KY` |
+| Country of origin | leave blank |
+
+Then upload the `.txt` files from:
+
+    sample_data/default_demo_batch/
+
+Expected results:
+
+| File | Expected Result | What it Demonstrates |
+|---|---|---|
+| `old_tom_label.txt` | `PASS` | Baseline passing label |
+| `pass_linebreak_warning_label.txt` | `PASS` | Required warning text split across lines |
+| `pass_proof_only_label.txt` | `PASS` | `90 Proof` recognized as equivalent to `45% ABV` |
+| `review_case_old_tom_case.txt` | `PASS` | Human-equivalent casing/formatting |
+| `bad_warning_label.txt` | `FAIL` | Non-standard warning wording |
+| `fail_abv_mismatch_label.txt` | `FAIL` | ABV mismatch |
+| `fail_missing_warning_label.txt` | `FAIL` | Missing government warning |
+| `fail_net_contents_mismatch_label.txt` | `FAIL` | Net contents mismatch |
+| `fail_titlecase_warning_label.txt` | `FAIL` | `Government Warning` title case instead of exact all-caps prefix |
+
+### Country-origin scenario
+
+To test the import country-origin case, upload:
+
+    sample_data/special_scenarios/country_origin_jamaica_label.txt
+
+Use these sidebar values:
+
+| Field | Value |
+|---|---|
+| Brand Name | `OLD TOM DISTILLERY` |
+| Class/Type | `Kentucky Straight Bourbon Whiskey` |
+| Alcohol Content | `45% Alc./Vol. (90 Proof)` |
+| Net Contents | `750 mL` |
+| Producer | `Old Tom Distillery, Louisville, KY` |
+| Country of origin | `Jamaica` |
+
+Expected result: `PASS`.
+
+If the country field is left blank, the expected result is `REVIEW`, because the label appears to state `Product of Jamaica` but the application field is empty.
+
+### STONE'S THROW scenario
+
+To test Dave's case/punctuation nuance, upload:
+
+    sample_data/special_scenarios/review_stones_throw_case_label.txt
+
+Change the sidebar value:
+
+| Field | Value |
+|---|---|
+| Brand Name | `Stone's Throw` |
+
+Expected result: `PASS`, because the label text `STONE'S THROW` and application value `Stone's Throw` are treated as human-equivalent.
+
+If the default brand value `OLD TOM DISTILLERY` is left in the sidebar, the expected result is `FAIL`, because that is a different brand.
+
+### What to look for during review
+
+The prototype demonstrates:
+
+1. **Single-label review** using application fields entered in the sidebar.
+2. **Batch upload** for multiple labels at once.
+3. **Fast local checks** without relying on external AI APIs.
+4. **Strict government-warning validation** where exact legal wording matters.
+5. **Fuzzy matching** for obvious human-equivalent differences such as casing, punctuation, and spacing.
+6. **Downloadable CSV and JSON results** for audit/review workflows.
+
+### Suggested reviewer path
+
+1. Run the tests with `python -m pytest -q`.
+2. Start the app with `python -m streamlit run app.py`.
+3. Upload the default demo batch from `sample_data/default_demo_batch/`.
+4. Confirm that the app separates passing labels from intentionally failing labels.
+5. Test the country-origin scenario with Country of origin set to `Jamaica`.
+6. Test the STONE'S THROW scenario with Brand Name set to `Stone's Throw`.
+7. Download the CSV/JSON results.
+8. Review the documented assumptions and limitations.
+
+
+
+## Screenshots
+
+The screenshots below show the deployed Streamlit prototype running through the default demo workflow. They are included so reviewers can quickly understand the user experience before running the project locally.
+
+### Main Review Screen
+
+![Main review screen](docs/screenshots/home.png)
+
+This screen shows the one-page review interface with application fields in the sidebar and the label upload area in the main panel.
+
+### Default Batch Results
+
+![Default batch results](docs/screenshots/batch-results.png)
+
+This screen shows the default demo batch results. The batch includes labels that intentionally pass and labels that intentionally fail, demonstrating that the tool separates routine matches from labels requiring rejection or additional review.
+
+### Detailed Checks
+
+![Detailed checks](docs/screenshots/detailed-checks.png)
+
+This screen shows the field-level explanation table. Each uploaded label is broken down by brand name, class/type, alcohol content, net contents, producer/address, country of origin when applicable, and government warning checks.
+
+### Exportable Results
+
+![Exportable results](docs/screenshots/export-results.png)
+
+This screen shows the CSV and JSON export buttons. These exports support audit-style review workflows by allowing reviewers to download structured verification results.
+
+### Screenshot Files
+
+The screenshots are stored in:
+
+```text
+docs/screenshots/home.png
+docs/screenshots/batch-results.png
+docs/screenshots/detailed-checks.png
+docs/screenshots/export-results.png
+```
+
+To reproduce these screenshots:
+
+1. Open the deployed Streamlit application.
+2. Leave the default Old Tom application fields in the sidebar.
+3. Upload the files from `sample_data/default_demo_batch/`.
+4. Click **Verify labels**.
+5. Capture the main page, batch summary, detailed checks table, and export buttons.
+
+
+## Git Ignore Notes
+
+This repository should not include the virtual environment or local cache files.
+
+The `.gitignore` should exclude:
+
+```text
+.venv/
+venv/
+env/
+__pycache__/
+.pytest_cache/
+.streamlit/secrets.toml
+labelguard_verification_results.csv
+labelguard_verification_results.json
+```
+
+Before committing, check:
+
+```bash
+git status
+git status --ignored
+```
+
+If `.venv/` was accidentally staged, remove it from Git tracking:
+
+```bash
+git rm -r --cached .venv
+```
+
+## Assumptions and Limitations
+
+This prototype is designed as a standalone proof of concept for alcohol label verification. It focuses on fast, transparent checks that help compliance agents identify obvious matches, likely mismatches, and labels that need human review. The goal is not to replace final compliance judgment, but to reduce repetitive field-matching work and make review faster.
+
+| Area | Current Prototype Behavior | Assumption / Limitation | Possible Production Improvement |
+|---|---|---|---|
+| COLA integration | Runs as a standalone Streamlit application | The prototype does not connect to the COLA system, authentication services, or production TTB infrastructure | Integrate with COLA only after security review, access control design, audit logging, and procurement approval |
+| Label uploads | Supports text files and common image formats | Text files are the most reliable demo path; image OCR quality depends on local Tesseract and image clarity | Add layout-aware OCR, bounding boxes, confidence scores, and preprocessing for glare, skew, rotation, and low contrast |
+| Batch review | Allows multiple files to be uploaded and checked at once | Batch results are generated in-memory during the session and are not stored permanently | Add queue management, persistent review history, audit trails, and exportable batch reports |
+| Speed | Uses lightweight local parsing and matching | Plain-text labels should process quickly; image OCR may be slower depending on file size and OCR environment | Add performance benchmarks, asynchronous processing, cached OCR results, and optimized document pipelines |
+| Brand/class matching | Uses normalized and fuzzy text comparison | Obvious human-equivalent differences such as casing, spacing, and punctuation may be treated as acceptable or review-worthy | Add configurable agency rules for when differences should pass, fail, or require supervisor review |
+| Alcohol content | Parses common ABV and proof-style expressions | The prototype checks the application value against the extracted label text, but it does not currently apply different alcohol-content rules by beverage type | Add beverage-specific rule profiles for distilled spirits, wine, malt beverages, and imports |
+| Net contents | Parses common metric and U.S. volume expressions | The prototype checks numeric equivalence within a small tolerance, but it does not currently validate beverage-specific container-size rules | Add official container-size validation by beverage type and regulatory category |
+| Government warning | Checks for the required warning text and all-caps `GOVERNMENT WARNING:` wording | OCR/plain text can verify wording, but cannot reliably prove bold styling, font size, placement, or separation from other text | Add image/PDF layout analysis to validate boldness, font size, placement, contrast, and separation |
+| Country of origin | Checks provided country-origin values and flags explicit label origin text when the application country field is blank | The prototype detects common phrases such as `Product of Jamaica`, but it does not fully infer import status from all possible label wording | Add stronger import-status logic, country-name normalization, and required-field validation based on product origin |
+| Human judgment | Produces `PASS`, `REVIEW`, or `FAIL` style results | Nuanced compliance decisions still require trained reviewer judgment | Add reviewer notes, supervisor override, decision history, and confidence calibration from real review outcomes |
+| Data storage | Does not store uploaded labels or results after the session | This reduces prototype privacy risk but means there is no long-term audit trail | Add secure storage only after retention, privacy, and federal compliance requirements are defined |
+| Cloud/API usage | Avoids external AI APIs | This assumes the prototype may be tested in a restricted network environment where outbound API calls may be blocked | For production, evaluate approved government cloud services or Azure-hosted OCR/ML services under appropriate security controls |
+| Accessibility | Uses Streamlit’s default accessible UI components | The prototype has not undergone formal Section 508/accessibility testing | Perform keyboard navigation, screen-reader, color contrast, and usability testing with actual compliance agents |
+| Scope | Focuses on common label/application matching checks | The prototype does not currently implement separate rule engines for distilled spirits, wine, or malt beverages; the beverage-type concept is treated as future scope | Expand into beverage-specific rule profiles only after the core workflow is validated with users |
+
+### Summary of Key Trade-offs
+
+- The prototype prioritizes **speed, clarity, and reliability** over complex AI automation.
+- It uses deterministic checks where exact compliance matters, especially for the government warning statement.
+- It uses fuzzy matching only where human reviewers would likely recognize two values as equivalent.
+- It avoids storing data or calling external APIs to keep the prototype simple and safer for a government-style review environment.
+- Final compliance decisions should remain with trained TTB reviewers, especially when typography, layout, image quality, or regulatory nuance matters.
+## Future Improvements
+
+* Add bounding-box OCR overlays showing where each required field was found.
+* Add image preprocessing for skew, glare, and low contrast.
+* Add beverage-specific rule profiles for distilled spirits, wine, malt beverages, and imports.
+* Add accessibility testing for keyboard-only and screen-reader workflows.
+* Add confidence calibration using real review outcomes.
+* Add a side-by-side view of application data and extracted label text.
+* Add Azure deployment templates for government cloud environments.
+* Add audit logs for reviewer decisions in a secure production version.
