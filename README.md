@@ -15,16 +15,13 @@ The application focuses on the workflow described in the take-home assignment:
 ## Deployed Application
 
 Deployed application URL:
-
 ```text
-Deployed application URL: https://instructions-mjezx6hfgujxkdu6xkrphf.streamlit.app/
-
+https://instructions-mjezx6hfgujxkdu6xkrphf.streamlit.app/
 ```
 
 Source code repository:
-
 ```text
-https://github.com/Colonad/instructions/tree/labelguard-prototype
+https://github.com/Colonad/instructions/tree/main
 ```
 
 ## What the App Checks
