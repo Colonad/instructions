@@ -202,7 +202,11 @@ Open the URL printed by Streamlit. It is usually:
 
     http://localhost:8501
 
-### Demo input values
+### Important testing note
+
+The app applies one set of sidebar application data to every uploaded file in a batch. That means the default Old Tom labels, the Jamaica import label, and the STONE'S THROW label should not all be tested with the same sidebar values unless you intentionally want to see mismatches.
+
+### Default demo batch
 
 Leave the default application fields as:
 
@@ -213,27 +217,62 @@ Leave the default application fields as:
 | Alcohol Content | `45% Alc./Vol. (90 Proof)` |
 | Net Contents | `750 mL` |
 | Producer | `Old Tom Distillery, Louisville, KY` |
+| Country of origin | leave blank |
 
+Then upload the `.txt` files from:
 
-The sample data uses a distilled spirits-style label, but the current prototype applies common label/application matching checks rather than separate beverage-specific regulatory rule profiles.
+    sample_data/default_demo_batch/
 
-### Files to upload
-
-Upload the included `.txt` files from `sample_data/`:
-
-    sample_data/old_tom_label.txt
-    sample_data/bad_warning_label.txt
-    sample_data/review_case_old_tom_case.txt
-
-Then click **Verify labels**.
-
-### Expected results
+Expected results:
 
 | File | Expected Result | What it Demonstrates |
 |---|---|---|
-| `old_tom_label.txt` | `PASS` | All required fields and the government warning are present |
-| `bad_warning_label.txt` | `FAIL` or warning issue flagged | Strict government-warning validation |
-| `review_case_old_tom_case.txt` | `PASS` / tolerant match behavior | Human-equivalent matching for casing and formatting differences |
+| `old_tom_label.txt` | `PASS` | Baseline passing label |
+| `pass_linebreak_warning_label.txt` | `PASS` | Required warning text split across lines |
+| `pass_proof_only_label.txt` | `PASS` | `90 Proof` recognized as equivalent to `45% ABV` |
+| `review_case_old_tom_case.txt` | `PASS` | Human-equivalent casing/formatting |
+| `bad_warning_label.txt` | `FAIL` | Non-standard warning wording |
+| `fail_abv_mismatch_label.txt` | `FAIL` | ABV mismatch |
+| `fail_missing_warning_label.txt` | `FAIL` | Missing government warning |
+| `fail_net_contents_mismatch_label.txt` | `FAIL` | Net contents mismatch |
+| `fail_titlecase_warning_label.txt` | `FAIL` | `Government Warning` title case instead of exact all-caps prefix |
+
+### Country-origin scenario
+
+To test the import country-origin case, upload:
+
+    sample_data/special_scenarios/country_origin_jamaica_label.txt
+
+Use these sidebar values:
+
+| Field | Value |
+|---|---|
+| Brand Name | `OLD TOM DISTILLERY` |
+| Class/Type | `Kentucky Straight Bourbon Whiskey` |
+| Alcohol Content | `45% Alc./Vol. (90 Proof)` |
+| Net Contents | `750 mL` |
+| Producer | `Old Tom Distillery, Louisville, KY` |
+| Country of origin | `Jamaica` |
+
+Expected result: `PASS`.
+
+If the country field is left blank, the expected result is `REVIEW`, because the label appears to state `Product of Jamaica` but the application field is empty.
+
+### STONE'S THROW scenario
+
+To test Dave's case/punctuation nuance, upload:
+
+    sample_data/special_scenarios/review_stones_throw_case_label.txt
+
+Change the sidebar value:
+
+| Field | Value |
+|---|---|
+| Brand Name | `Stone's Throw` |
+
+Expected result: `PASS`, because the label text `STONE'S THROW` and application value `Stone's Throw` are treated as human-equivalent.
+
+If the default brand value `OLD TOM DISTILLERY` is left in the sidebar, the expected result is `FAIL`, because that is a different brand.
 
 ### What to look for during review
 
@@ -250,10 +289,13 @@ The prototype demonstrates:
 
 1. Run the tests with `python -m pytest -q`.
 2. Start the app with `python -m streamlit run app.py`.
-3. Upload the three sample labels listed above.
-4. Confirm that the app separates passing labels from labels needing review or rejection.
-5. Download the CSV/JSON results.
-6. Review the documented assumptions and limitations.
+3. Upload the default demo batch from `sample_data/default_demo_batch/`.
+4. Confirm that the app separates passing labels from intentionally failing labels.
+5. Test the country-origin scenario with Country of origin set to `Jamaica`.
+6. Test the STONE'S THROW scenario with Brand Name set to `Stone's Throw`.
+7. Download the CSV/JSON results.
+8. Review the documented assumptions and limitations.
+
 ## Git Ignore Notes
 
 This repository should not include the virtual environment or local cache files.
@@ -298,7 +340,7 @@ This prototype is designed as a standalone proof of concept for alcohol label ve
 | Alcohol content | Parses common ABV and proof-style expressions | The prototype checks the application value against the extracted label text, but it does not currently apply different alcohol-content rules by beverage type | Add beverage-specific rule profiles for distilled spirits, wine, malt beverages, and imports |
 | Net contents | Parses common metric and U.S. volume expressions | The prototype checks numeric equivalence within a small tolerance, but it does not currently validate beverage-specific container-size rules | Add official container-size validation by beverage type and regulatory category |
 | Government warning | Checks for the required warning text and all-caps `GOVERNMENT WARNING:` wording | OCR/plain text can verify wording, but cannot reliably prove bold styling, font size, placement, or separation from other text | Add image/PDF layout analysis to validate boldness, font size, placement, contrast, and separation |
-| Country of origin | Checks country of origin only when provided in the application data | The prototype does not independently infer whether a product is imported | Add import-status logic and required-field validation based on product origin |
+| Country of origin | Checks provided country-origin values and flags explicit label origin text when the application country field is blank | The prototype detects common phrases such as `Product of Jamaica`, but it does not fully infer import status from all possible label wording | Add stronger import-status logic, country-name normalization, and required-field validation based on product origin |
 | Human judgment | Produces `PASS`, `REVIEW`, or `FAIL` style results | Nuanced compliance decisions still require trained reviewer judgment | Add reviewer notes, supervisor override, decision history, and confidence calibration from real review outcomes |
 | Data storage | Does not store uploaded labels or results after the session | This reduces prototype privacy risk but means there is no long-term audit trail | Add secure storage only after retention, privacy, and federal compliance requirements are defined |
 | Cloud/API usage | Avoids external AI APIs | This assumes the prototype may be tested in a restricted network environment where outbound API calls may be blocked | For production, evaluate approved government cloud services or Azure-hosted OCR/ML services under appropriate security controls |

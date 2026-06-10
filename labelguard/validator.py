@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import re
 import time
-from typing import List
+from typing import List, Optional
 
 from .models import ApplicationData, CheckResult, Status, VerificationReport
 from .utils import (
@@ -21,6 +22,18 @@ GOVERNMENT_WARNING_EXACT = (
     "(2) Consumption of alcoholic beverages impairs your ability to drive a car or operate "
     "machinery, and may cause health problems."
 )
+
+
+_COUNTRY_ORIGIN_PATTERNS = [
+    r"\b(?:product\s+of|produced\s+in|made\s+in|imported\s+from)\s+(?P<country>[A-Za-z][A-Za-z .'-]{1,40})(?:[\n,.]|$)",
+    r"\bcountry\s+of\s+origin\s*:?\s*(?P<country>[A-Za-z][A-Za-z .'-]{1,40})(?:[\n,.]|$)",
+]
+
+
+def _first_nonempty_lines(text: str, max_lines: int) -> str:
+    """Return the first non-empty label lines as a smaller search area."""
+    lines = [line.strip() for line in (text or "").splitlines() if line.strip()]
+    return "\n".join(lines[:max_lines])
 
 
 def _field_match(field: str, expected: str, label_text: str, threshold: float = 0.92) -> CheckResult:
@@ -55,6 +68,23 @@ def _field_match(field: str, expected: str, label_text: str, threshold: float = 
         "Expected field was not found on the label text.",
         score,
     )
+
+
+def _field_match_near_top(
+    field: str,
+    expected: str,
+    label_text: str,
+    max_lines: int,
+    threshold: float = 0.92,
+) -> CheckResult:
+    """Check front-label fields in the top lines only.
+
+    This prevents a producer/address line from accidentally satisfying the brand-name
+    check. For example, a STONE'S THROW label should not pass the brand check just
+    because the producer line says Old Tom Distillery.
+    """
+    top_text = _first_nonempty_lines(label_text, max_lines=max_lines)
+    return _field_match(field, expected, top_text, threshold=threshold)
 
 
 def _abv_match(expected: str, label_text: str, tolerance: float = 0.15) -> CheckResult:
@@ -158,6 +188,77 @@ def _warning_match(label_text: str) -> CheckResult:
     )
 
 
+def _detect_country_origin(label_text: str) -> Optional[str]:
+    """Detect common country-of-origin wording in label text.
+
+    This intentionally does not try to infer every possible country. It only catches
+    explicit origin phrases such as "Product of Jamaica" or "Imported from France".
+    """
+    for pattern in _COUNTRY_ORIGIN_PATTERNS:
+        match = re.search(pattern, label_text or "", flags=re.IGNORECASE)
+        if not match:
+            continue
+        country = re.sub(r"\s+", " ", match.group("country")).strip(" .,-")
+        country = re.sub(r"\s+GOVERNMENT\s+WARNING.*$", "", country, flags=re.IGNORECASE).strip()
+        if country:
+            return country
+    return None
+
+
+def _country_origin_match(expected: str, label_text: str) -> Optional[CheckResult]:
+    """Validate country of origin only when relevant information exists.
+
+    Rules:
+    - Application country filled + matching label country => PASS/REVIEW.
+    - Application country filled + no matching label country => FAIL.
+    - Application country blank + label appears to state origin => REVIEW.
+    - Application country blank + no origin wording => no check emitted.
+    """
+    expected = (expected or "").strip()
+    observed_country = _detect_country_origin(label_text)
+
+    if expected:
+        ok, score, observed = contains_fuzzy(expected, label_text, threshold=0.90)
+        if ok and score >= 0.995:
+            return CheckResult(
+                "Country of Origin",
+                Status.PASS,
+                expected,
+                observed_country or expected,
+                "Country of origin matches the application value.",
+                score,
+            )
+        if ok:
+            return CheckResult(
+                "Country of Origin",
+                Status.REVIEW,
+                expected,
+                observed_country or observed,
+                "Close country-of-origin match found; reviewer should confirm.",
+                score,
+            )
+        return CheckResult(
+            "Country of Origin",
+            Status.FAIL,
+            expected,
+            observed_country or "not found",
+            "Application provides a country of origin, but matching country-origin text was not found on the label.",
+            score,
+        )
+
+    if observed_country:
+        return CheckResult(
+            "Country of Origin",
+            Status.REVIEW,
+            "not provided in application data",
+            f"Label appears to state: {observed_country}",
+            "Country-origin wording appears on the label, but the application country-of-origin field was left blank.",
+            0.75,
+        )
+
+    return None
+
+
 def overall_status(checks: List[CheckResult]) -> Status:
     if any(check.status == Status.FAIL for check in checks):
         return Status.FAIL
@@ -169,8 +270,8 @@ def overall_status(checks: List[CheckResult]) -> Status:
 def verify_label_text(filename: str, application: ApplicationData, label_text: str) -> VerificationReport:
     start = time.perf_counter()
     checks: List[CheckResult] = [
-        _field_match("Brand Name", application.brand_name, label_text, threshold=0.90),
-        _field_match("Class/Type", application.class_type, label_text, threshold=0.88),
+        _field_match_near_top("Brand Name", application.brand_name, label_text, max_lines=4, threshold=0.90),
+        _field_match_near_top("Class/Type", application.class_type, label_text, max_lines=6, threshold=0.88),
         _abv_match(application.alcohol_content, label_text),
         _net_contents_match(application.net_contents, label_text),
         _warning_match(label_text),
@@ -178,8 +279,10 @@ def verify_label_text(filename: str, application: ApplicationData, label_text: s
 
     if application.producer_name_address.strip():
         checks.append(_field_match("Producer/Bottler Name and Address", application.producer_name_address, label_text, threshold=0.82))
-    if application.country_of_origin.strip():
-        checks.append(_field_match("Country of Origin", application.country_of_origin, label_text, threshold=0.90))
+
+    country_check = _country_origin_match(application.country_of_origin, label_text)
+    if country_check is not None:
+        checks.append(country_check)
 
     elapsed = time.perf_counter() - start
     return VerificationReport(

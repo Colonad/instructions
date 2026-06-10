@@ -65,6 +65,22 @@ application = ApplicationData(
     beverage_type=beverage_type,
 )
 
+with st.expander("Sample-data guide", expanded=True):
+    st.markdown(
+        """
+        The same sidebar application data is applied to every uploaded file in a batch.
+
+        **Default demo:** leave the sidebar values as-is and upload files from `sample_data/default_demo_batch/`.
+        Some of those files are intentionally invalid and should show `FAIL`.
+
+        **Country-origin demo:** upload `sample_data/special_scenarios/country_origin_jamaica_label.txt`.
+        Set **Country of origin, if imported** to `Jamaica` for `PASS`; leave it blank to see `REVIEW`.
+
+        **STONE'S THROW demo:** upload `sample_data/special_scenarios/review_stones_throw_case_label.txt`.
+        Set **Brand name** to `Stone's Throw` to demonstrate case/punctuation-tolerant matching.
+        """
+    )
+
 uploaded_files = st.file_uploader(
     "Upload label files",
     type=["txt", "md", "csv", "png", "jpg", "jpeg", "tif", "tiff", "webp", "bmp"],
