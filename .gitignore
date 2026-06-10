@@ -1,0 +1,36 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Streamlit local secrets/config
+.streamlit/secrets.toml
+
+# Local outputs / demo exports
+labelguard_verification_results.csv
+labelguard_verification_results.json
+*.csv
+*.json
+
+# Keep sample expected CSV if needed
+!sample_data/*.csv
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
