@@ -17,7 +17,7 @@ The application focuses on the workflow described in the take-home assignment:
 Deployed application URL:
 
 ```text
-Deployed application URL:
+Deployed application URL: https://instructions-mjezx6hfgujxkdu6xkrphf.streamlit.app/
 
 ```
 
