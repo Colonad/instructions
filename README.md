@@ -214,6 +214,9 @@ Leave the default application fields as:
 | Net Contents | `750 mL` |
 | Producer | `Old Tom Distillery, Louisville, KY` |
 
+
+The sample data uses a distilled spirits-style label, but the current prototype applies common label/application matching checks rather than separate beverage-specific regulatory rule profiles.
+
 ### Files to upload
 
 Upload the included `.txt` files from `sample_data/`:
@@ -292,15 +295,15 @@ This prototype is designed as a standalone proof of concept for alcohol label ve
 | Batch review | Allows multiple files to be uploaded and checked at once | Batch results are generated in-memory during the session and are not stored permanently | Add queue management, persistent review history, audit trails, and exportable batch reports |
 | Speed | Uses lightweight local parsing and matching | Plain-text labels should process quickly; image OCR may be slower depending on file size and OCR environment | Add performance benchmarks, asynchronous processing, cached OCR results, and optimized document pipelines |
 | Brand/class matching | Uses normalized and fuzzy text comparison | Obvious human-equivalent differences such as casing, spacing, and punctuation may be treated as acceptable or review-worthy | Add configurable agency rules for when differences should pass, fail, or require supervisor review |
-| Alcohol content | Parses ABV and proof-style expressions | The prototype handles common expressions such as `45% Alc./Vol.` and `90 Proof`, but does not cover every beverage-specific exception | Add beverage-specific rule profiles for distilled spirits, wine, malt beverages, and imports |
-| Net contents | Parses common metric and U.S. volume expressions | The prototype checks numeric equivalence within a small tolerance but does not validate every permitted container-size rule | Add official container-size validation by beverage type and regulatory category |
+| Alcohol content | Parses common ABV and proof-style expressions | The prototype checks the application value against the extracted label text, but it does not currently apply different alcohol-content rules by beverage type | Add beverage-specific rule profiles for distilled spirits, wine, malt beverages, and imports |
+| Net contents | Parses common metric and U.S. volume expressions | The prototype checks numeric equivalence within a small tolerance, but it does not currently validate beverage-specific container-size rules | Add official container-size validation by beverage type and regulatory category |
 | Government warning | Checks for the required warning text and all-caps `GOVERNMENT WARNING:` wording | OCR/plain text can verify wording, but cannot reliably prove bold styling, font size, placement, or separation from other text | Add image/PDF layout analysis to validate boldness, font size, placement, contrast, and separation |
 | Country of origin | Checks country of origin only when provided in the application data | The prototype does not independently infer whether a product is imported | Add import-status logic and required-field validation based on product origin |
 | Human judgment | Produces `PASS`, `REVIEW`, or `FAIL` style results | Nuanced compliance decisions still require trained reviewer judgment | Add reviewer notes, supervisor override, decision history, and confidence calibration from real review outcomes |
 | Data storage | Does not store uploaded labels or results after the session | This reduces prototype privacy risk but means there is no long-term audit trail | Add secure storage only after retention, privacy, and federal compliance requirements are defined |
 | Cloud/API usage | Avoids external AI APIs | This assumes the prototype may be tested in a restricted network environment where outbound API calls may be blocked | For production, evaluate approved government cloud services or Azure-hosted OCR/ML services under appropriate security controls |
 | Accessibility | Uses Streamlit’s default accessible UI components | The prototype has not undergone formal Section 508/accessibility testing | Perform keyboard navigation, screen-reader, color contrast, and usability testing with actual compliance agents |
-| Scope | Focuses on core label/application matching | The prototype intentionally avoids ambitious features that could make the submission incomplete or unstable | Expand only after the core workflow is validated with users |
+| Scope | Focuses on common label/application matching checks | The prototype does not currently implement separate rule engines for distilled spirits, wine, or malt beverages; the beverage-type concept is treated as future scope | Expand into beverage-specific rule profiles only after the core workflow is validated with users |
 
 ### Summary of Key Trade-offs
 
@@ -313,7 +316,7 @@ This prototype is designed as a standalone proof of concept for alcohol label ve
 
 * Add bounding-box OCR overlays showing where each required field was found.
 * Add image preprocessing for skew, glare, and low contrast.
-* Add beverage-specific rule profiles.
+* Add beverage-specific rule profiles for distilled spirits, wine, malt beverages, and imports.
 * Add accessibility testing for keyboard-only and screen-reader workflows.
 * Add confidence calibration using real review outcomes.
 * Add a side-by-side view of application data and extracted label text.

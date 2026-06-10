@@ -49,8 +49,12 @@ alcohol_content = st.sidebar.text_input("Alcohol content", "45% Alc./Vol. (90 Pr
 net_contents = st.sidebar.text_input("Net contents", "750 mL")
 producer_name_address = st.sidebar.text_area("Producer/bottler name and address", "Old Tom Distillery, Louisville, KY")
 country_of_origin = st.sidebar.text_input("Country of origin, if imported", "")
-beverage_type = st.sidebar.selectbox("Beverage type", ["distilled_spirits", "wine", "malt_beverage"])
-
+st.sidebar.markdown("**Beverage type**")
+st.sidebar.info(
+    "Demo profile: distilled spirits sample label. "
+    "This prototype currently applies common label/application checks rather than separate beverage-specific rule profiles."
+)
+beverage_type = "distilled_spirits"
 application = ApplicationData(
     brand_name=brand_name,
     class_type=class_type,
