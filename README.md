@@ -296,6 +296,56 @@ The prototype demonstrates:
 7. Download the CSV/JSON results.
 8. Review the documented assumptions and limitations.
 
+
+
+## Screenshots
+
+The screenshots below show the deployed Streamlit prototype running through the default demo workflow. They are included so reviewers can quickly understand the user experience before running the project locally.
+
+### Main Review Screen
+
+![Main review screen](docs/screenshots/home.png)
+
+This screen shows the one-page review interface with application fields in the sidebar and the label upload area in the main panel.
+
+### Default Batch Results
+
+![Default batch results](docs/screenshots/batch-results.png)
+
+This screen shows the default demo batch results. The batch includes labels that intentionally pass and labels that intentionally fail, demonstrating that the tool separates routine matches from labels requiring rejection or additional review.
+
+### Detailed Checks
+
+![Detailed checks](docs/screenshots/detailed-checks.png)
+
+This screen shows the field-level explanation table. Each uploaded label is broken down by brand name, class/type, alcohol content, net contents, producer/address, country of origin when applicable, and government warning checks.
+
+### Exportable Results
+
+![Exportable results](docs/screenshots/export-results.png)
+
+This screen shows the CSV and JSON export buttons. These exports support audit-style review workflows by allowing reviewers to download structured verification results.
+
+### Screenshot Files
+
+The screenshots are stored in:
+
+```text
+docs/screenshots/home.png
+docs/screenshots/batch-results.png
+docs/screenshots/detailed-checks.png
+docs/screenshots/export-results.png
+```
+
+To reproduce these screenshots:
+
+1. Open the deployed Streamlit application.
+2. Leave the default Old Tom application fields in the sidebar.
+3. Upload the files from `sample_data/default_demo_batch/`.
+4. Click **Verify labels**.
+5. Capture the main page, batch summary, detailed checks table, and export buttons.
+
+
 ## Git Ignore Notes
 
 This repository should not include the virtual environment or local cache files.
