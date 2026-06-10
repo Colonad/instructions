@@ -186,8 +186,71 @@ Open the local URL shown by Streamlit. It is usually:
 http://localhost:8501
 ```
 
+## Quick Demo Script
 
+This section gives reviewers a fast, repeatable path to test the prototype without reading the full codebase first.
 
+### Local demo
+
+From the project root, run:
+
+    source .venv/bin/activate
+    python -m pytest -q
+    python -m streamlit run app.py
+
+Open the URL printed by Streamlit. It is usually:
+
+    http://localhost:8501
+
+### Demo input values
+
+Leave the default application fields as:
+
+| Field | Value |
+|---|---|
+| Brand Name | `OLD TOM DISTILLERY` |
+| Class/Type | `Kentucky Straight Bourbon Whiskey` |
+| Alcohol Content | `45% Alc./Vol. (90 Proof)` |
+| Net Contents | `750 mL` |
+| Producer | `Old Tom Distillery, Louisville, KY` |
+
+### Files to upload
+
+Upload the included `.txt` files from `sample_data/`:
+
+    sample_data/old_tom_label.txt
+    sample_data/bad_warning_label.txt
+    sample_data/review_case_old_tom_case.txt
+
+Then click **Verify labels**.
+
+### Expected results
+
+| File | Expected Result | What it Demonstrates |
+|---|---|---|
+| `old_tom_label.txt` | `PASS` | All required fields and the government warning are present |
+| `bad_warning_label.txt` | `FAIL` or warning issue flagged | Strict government-warning validation |
+| `review_case_old_tom_case.txt` | `PASS` / tolerant match behavior | Human-equivalent matching for casing and formatting differences |
+
+### What to look for during review
+
+The prototype demonstrates:
+
+1. **Single-label review** using application fields entered in the sidebar.
+2. **Batch upload** for multiple labels at once.
+3. **Fast local checks** without relying on external AI APIs.
+4. **Strict government-warning validation** where exact legal wording matters.
+5. **Fuzzy matching** for obvious human-equivalent differences such as casing, punctuation, and spacing.
+6. **Downloadable CSV and JSON results** for audit/review workflows.
+
+### Suggested reviewer path
+
+1. Run the tests with `python -m pytest -q`.
+2. Start the app with `python -m streamlit run app.py`.
+3. Upload the three sample labels listed above.
+4. Confirm that the app separates passing labels from labels needing review or rejection.
+5. Download the CSV/JSON results.
+6. Review the documented assumptions and limitations.
 ## Git Ignore Notes
 
 This repository should not include the virtual environment or local cache files.
@@ -220,16 +283,32 @@ git rm -r --cached .venv
 
 ## Assumptions and Limitations
 
-| Area                    | Current Prototype Behavior                                                | Production Consideration                                                                                   |
-| ----------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| COLA integration        | Standalone application only                                               | Direct integration would require authentication, authorization, audit logging, and federal security review |
-| File storage            | Does not persist uploaded files                                           | Production would need retention rules and secure storage policies                                          |
-| OCR                     | Supports text files immediately and image OCR when Tesseract is available | Production should improve OCR for glare, rotation, curved bottles, and low-light images                    |
-| Bold text               | Extracted text can verify wording but not reliably prove bold styling     | Production would need layout-aware image/PDF analysis                                                      |
-| Government warning      | Checks required wording and capitalization                                | Production should verify formatting, placement, and size requirements                                      |
-| Beverage-specific rules | Focuses on common distilled spirits-style fields                          | Production should include separate rule profiles for distilled spirits, wine, and malt beverages           |
-| Final decision          | Provides decision support                                                 | Human compliance reviewers should remain responsible for final determinations                              |
+This prototype is designed as a standalone proof of concept for alcohol label verification. It focuses on fast, transparent checks that help compliance agents identify obvious matches, likely mismatches, and labels that need human review. The goal is not to replace final compliance judgment, but to reduce repetitive field-matching work and make review faster.
 
+| Area | Current Prototype Behavior | Assumption / Limitation | Possible Production Improvement |
+|---|---|---|---|
+| COLA integration | Runs as a standalone Streamlit application | The prototype does not connect to the COLA system, authentication services, or production TTB infrastructure | Integrate with COLA only after security review, access control design, audit logging, and procurement approval |
+| Label uploads | Supports text files and common image formats | Text files are the most reliable demo path; image OCR quality depends on local Tesseract and image clarity | Add layout-aware OCR, bounding boxes, confidence scores, and preprocessing for glare, skew, rotation, and low contrast |
+| Batch review | Allows multiple files to be uploaded and checked at once | Batch results are generated in-memory during the session and are not stored permanently | Add queue management, persistent review history, audit trails, and exportable batch reports |
+| Speed | Uses lightweight local parsing and matching | Plain-text labels should process quickly; image OCR may be slower depending on file size and OCR environment | Add performance benchmarks, asynchronous processing, cached OCR results, and optimized document pipelines |
+| Brand/class matching | Uses normalized and fuzzy text comparison | Obvious human-equivalent differences such as casing, spacing, and punctuation may be treated as acceptable or review-worthy | Add configurable agency rules for when differences should pass, fail, or require supervisor review |
+| Alcohol content | Parses ABV and proof-style expressions | The prototype handles common expressions such as `45% Alc./Vol.` and `90 Proof`, but does not cover every beverage-specific exception | Add beverage-specific rule profiles for distilled spirits, wine, malt beverages, and imports |
+| Net contents | Parses common metric and U.S. volume expressions | The prototype checks numeric equivalence within a small tolerance but does not validate every permitted container-size rule | Add official container-size validation by beverage type and regulatory category |
+| Government warning | Checks for the required warning text and all-caps `GOVERNMENT WARNING:` wording | OCR/plain text can verify wording, but cannot reliably prove bold styling, font size, placement, or separation from other text | Add image/PDF layout analysis to validate boldness, font size, placement, contrast, and separation |
+| Country of origin | Checks country of origin only when provided in the application data | The prototype does not independently infer whether a product is imported | Add import-status logic and required-field validation based on product origin |
+| Human judgment | Produces `PASS`, `REVIEW`, or `FAIL` style results | Nuanced compliance decisions still require trained reviewer judgment | Add reviewer notes, supervisor override, decision history, and confidence calibration from real review outcomes |
+| Data storage | Does not store uploaded labels or results after the session | This reduces prototype privacy risk but means there is no long-term audit trail | Add secure storage only after retention, privacy, and federal compliance requirements are defined |
+| Cloud/API usage | Avoids external AI APIs | This assumes the prototype may be tested in a restricted network environment where outbound API calls may be blocked | For production, evaluate approved government cloud services or Azure-hosted OCR/ML services under appropriate security controls |
+| Accessibility | Uses Streamlit’s default accessible UI components | The prototype has not undergone formal Section 508/accessibility testing | Perform keyboard navigation, screen-reader, color contrast, and usability testing with actual compliance agents |
+| Scope | Focuses on core label/application matching | The prototype intentionally avoids ambitious features that could make the submission incomplete or unstable | Expand only after the core workflow is validated with users |
+
+### Summary of Key Trade-offs
+
+- The prototype prioritizes **speed, clarity, and reliability** over complex AI automation.
+- It uses deterministic checks where exact compliance matters, especially for the government warning statement.
+- It uses fuzzy matching only where human reviewers would likely recognize two values as equivalent.
+- It avoids storing data or calling external APIs to keep the prototype simple and safer for a government-style review environment.
+- Final compliance decisions should remain with trained TTB reviewers, especially when typography, layout, image quality, or regulatory nuance matters.
 ## Future Improvements
 
 * Add bounding-box OCR overlays showing where each required field was found.
