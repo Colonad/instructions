@@ -121,7 +121,7 @@ This approach was chosen because the assignment emphasizes speed, usability, and
 * pip
 * Optional: Tesseract OCR for image-based label files
 
-Text files do not require Tesseract. The included sample files are plain text, so the core application can be tested immediately after installing Python dependencies.
+Text files do not require Tesseract. The included sample files are plain text, so the core application can be tested immediately after installing Python dependencies. Text-file label review is the verified primary demo path. Image OCR is also supported through local Tesseract and was tested with a generated PNG sample label.
 
 ### Optional Tesseract Installation
 
